@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Directorios de los que se harán las copias.
-SOURCES="/"
+SOURCES="/boot /home /usr /var /etc /sbin /bin"
 
 # IP de la máquina remota.
 RMACHINE=10.0.0.3
