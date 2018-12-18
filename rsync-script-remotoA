@@ -16,7 +16,7 @@ RKEY=/etc/ssh/rsync-key-aznar
 RTARGET="/backup/aznar"
 
 # Asignamos el numero de rotaciones que tendrá el backup. Asegurate de tener espacio en disco.
-ROTATIONS=4
+ROTATIONS=2
 
 # Habilitamos la salida de información extensa.
 VERBOSE="-v"
