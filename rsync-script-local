@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Directorios de los que se harán las copias
-SOURCES="/package-selections /boot /home /usr /var /etc /sbin /bin"
+SOURCES="/boot /home /usr /var /etc /sbin /bin"
 
 # Directorio donde se almacenarán las copias
 TARGET="/backup/rajoy"
@@ -86,10 +86,10 @@ for source in $SOURCES; do
   fi
   
   # Creamos el fichero con los paquetes instalados en el sistema.
-  dpkg-query -f '${binary:Package}\n' -W > /package-selections
+  dpkg-query -f '${binary:Package}\n' -W > /usr/local/bin/package-selections
 
   # Realizamos el comando rsync.
-  rsync $VERBOSE -a --delete $source/ $TARGET/$BACKUP_DATE/$source/
+  rsync $VERBOSE -z -a --delete $source/ $TARGET/$BACKUP_DATE/$source/
 
 done
 
