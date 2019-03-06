@@ -1,0 +1,101 @@
+#!/bin/sh
+
+# Directorios de los que se harán las copias
+SOURCES="/boot /home /usr /var /etc /sbin /bin"
+
+# Directorio donde se almacenarán las copias
+TARGET="/backup/rajoy/diaria"
+
+# Asignamos el numero de rotaciones que tendrá el backup. Asegurate de tener espacio en disco.
+ROTATIONS=6
+
+# Habilitamos la salida extensa.
+VERBOSE="-v"
+
+# Asignar la fecha al backup.
+BACKUP_DATE="`date +%F_%H-%M`"
+
+# Comprobaciones previas.
+if [ ! -x $TARGET ]; then
+  echo "No existe el directorio o no tienes permisos de ejecucion"
+  echo "Saliendo..."
+  exit 2
+fi
+
+if [ ! $ROTATIONS -gt 1 ]; then
+  echo "Tienes que asignar más de una rotación a ROTATIONS "
+  echo "Saliendo..."
+  exit 2
+fi
+
+# Incremental para guardar el número de backup.
+BACKUP_NUMBER=1
+
+# Listamos todos los backups por la copia más nueva.
+# Se asigna el nombre de la más antigua a la que se vaya a crear si se alcanzó el límite de copias.
+for backup in `ls -dXr $TARGET/*/`; do
+	if [ $BACKUP_NUMBER -eq 1 ]; then
+		NEWEST_BACKUP="$backup"
+	fi
+
+	if [ $BACKUP_NUMBER -eq $ROTATIONS ]; then
+		OLDEST_BACKUP="$backup"
+		break
+	fi
+
+	let "BACKUP_NUMBER=$BACKUP_NUMBER+1"
+done
+
+# Comprobamos si existe un backup anterior. Si existe, se rotará la copia. Si no, se creará un directorio para la copia.
+if [ $OLDEST_BACKUP ]; then
+  # Cambiamos el antiguo backup al actual.
+  mv $OLDEST_BACKUP $TARGET/$BACKUP_DATE
+else
+	mkdir $TARGET/$BACKUP_DATE
+fi
+
+# Actualizamos el backup actual usando el más reciente.
+if [ $NEWEST_BACKUP ]; then
+  cp -al $NEWEST_BACKUP. $TARGET/$BACKUP_DATE
+fi
+
+
+# Chequeamos si se ha realizado la rotación correctamente.
+if [ ! -d $TARGET/$BACKUP_DATE ]; then
+  echo "No se puede escribir en el directorio asignado al backup"
+  echo "Saliendo..."
+  exit 2
+fi
+
+echo "Verificando origen..."
+for source in $SOURCES; do
+	echo "Comprobando $source..."
+	if [ ! -x $source ]; then
+		echo "Error con $source!"
+		echo "El directorio no existe o no tienes permisos de ejecucion"
+		exit 2
+	fi
+done
+
+#Buscamos la última copia completa.
+LATEST_WEEK_BACKUP= "ls -Ft | grep '/backup/rajoy/$' | tail -1"
+
+#Últimos pasos antes de realizar la copia.
+echo "Origen comprobado. Iniciando rsync..."
+for source in $SOURCES; do
+
+  # Creamos los directorios en $TARGET para copiar la herarquía de los directorios
+  if [ ! -d $TARGET/$BACKUP_DATE/$source ]; then
+    mkdir -p $TARGET/$BACKUP_DATE/$source
+  fi
+  # Creamos el fichero con los paquetes instalados en el sistema.
+  dpkg-query -f '${binary:Package}\n' -W > /usr/local/bin/package-selections
+
+  # Realizamos el comando rsync.
+  if [ ! -d /backup/rajoy/$BACKUP_DATE ] && [ ! -d /backup/rajoy/mensual/$BACKUP_DATE ]; then
+    rsync $VERBOSE --compare-dest=$LATEST_WEEK_BACKUP -z -a --delete $source/ $TARGET/$BACKUP_DATE/$source/
+  fi
+
+done
+
+exit 0
