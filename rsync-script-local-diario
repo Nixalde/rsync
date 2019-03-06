@@ -4,7 +4,7 @@
 SOURCES="/boot /home /usr /var /etc /sbin /bin"
 
 # Directorio donde se almacenarán las copias
-TARGET="/backup/rajoy/diaria"
+TARGET="/backup/rajoy-diaria"
 
 # Asignamos el numero de rotaciones que tendrá el backup. Asegurate de tener espacio en disco.
 ROTATIONS=6
@@ -92,7 +92,7 @@ for source in $SOURCES; do
   dpkg-query -f '${binary:Package}\n' -W > /usr/local/bin/package-selections
 
   # Realizamos el comando rsync.
-  if [ ! -d /backup/rajoy/$BACKUP_DATE ] && [ ! -d /backup/rajoy/mensual/$BACKUP_DATE ]; then
+  if [ ! -d /backup/rajoy/$BACKUP_DATE ] && [ ! -d /backup/rajoy-mensual/$BACKUP_DATE ]; then
     rsync $VERBOSE --compare-dest=$LATEST_WEEK_BACKUP -z -a --delete $source/ $TARGET/$BACKUP_DATE/$source/
   fi
 
