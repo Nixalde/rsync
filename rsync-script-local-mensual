@@ -4,7 +4,7 @@
 SOURCES="/boot /home /usr /var /etc /sbin /bin"
 
 # Directorio donde se almacenarán las copias
-TARGET="/backup/rajoy/mensual"
+TARGET="/backup/rajoy-mensual"
 
 # Asignamos el numero de rotaciones que tendrá el backup. Asegurate de tener espacio en disco.
 ROTATIONS=12
