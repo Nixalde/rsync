@@ -9,21 +9,21 @@ TARGET="/backup/rajoy"
 # Asignamos el numero de rotaciones que tendrá el backup. Asegurate de tener espacio en disco.
 ROTATIONS=2
 
-# Habilitamos la salida de información extensa.
+# Habilitamos la salida extensa.
 VERBOSE="-v"
 
-# Asignar la fecha al backup. 
+# Asignar la fecha al backup.
 BACKUP_DATE="`date +%F_%H-%M`"
 
 # Comprobaciones previas.
 if [ ! -x $TARGET ]; then
-  echo "No existe el directorio o no tienes permisos"
+  echo "No existe el directorio o no tienes permisos de ejecucion"
   echo "Saliendo..."
   exit 2
 fi
 
 if [ ! $ROTATIONS -gt 1 ]; then
-  echo "Tienes que asignar más de una rotación a ROTATIONS"
+  echo "Tienes que asignar más de una rotación a ROTATIONS "
   echo "Saliendo..."
   exit 2
 fi
@@ -37,12 +37,12 @@ for backup in `ls -dXr $TARGET/*/`; do
 	if [ $BACKUP_NUMBER -eq 1 ]; then
 		NEWEST_BACKUP="$backup"
 	fi
-	
+
 	if [ $BACKUP_NUMBER -eq $ROTATIONS ]; then
 		OLDEST_BACKUP="$backup"
 		break
 	fi
-	
+
 	let "BACKUP_NUMBER=$BACKUP_NUMBER+1"
 done
 
@@ -60,23 +60,24 @@ if [ $NEWEST_BACKUP ]; then
 fi
 
 
-# Chequeamos si se ha realizado la rotación correctamente. 
+# Chequeamos si se ha realizado la rotación correctamente.
 if [ ! -d $TARGET/$BACKUP_DATE ]; then
   echo "No se puede escribir en el directorio asignado al backup"
   echo "Saliendo..."
   exit 2
-fi 
+fi
 
-echo "Verificando origen..." 
+echo "Verificando origen..."
 for source in $SOURCES; do
 	echo "Comprobando $source..."
 	if [ ! -x $source ]; then
      echo "Error con $source!"
-     echo "El directorio no existe o no tienes permisos"
+     echo "El directorio no existe o no tienes permisos de ejecucion"
      exit 2
    fi
 done
 
+#Últimos pasos antes de realizar la copia.
 echo "Origen comprobado. Iniciando rsync..."
 for source in $SOURCES; do
 
@@ -84,14 +85,14 @@ for source in $SOURCES; do
   if [ ! -d $TARGET/$BACKUP_DATE/$source ]; then
     mkdir -p $TARGET/$BACKUP_DATE/$source
   fi
-  
   # Creamos el fichero con los paquetes instalados en el sistema.
   dpkg-query -f '${binary:Package}\n' -W > /usr/local/bin/package-selections
 
   # Realizamos el comando rsync.
-  rsync $VERBOSE -z -a --delete $source/ $TARGET/$BACKUP_DATE/$source/
+  if [ ! -d /backup/rajoy-mensual/$BACKUP_DATE ]; then
+    rsync $VERBOSE -z -a --delete $source/ $TARGET/$BACKUP_DATE/$source/
+  fi
 
 done
 
 exit 0
-
