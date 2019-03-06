@@ -1,0 +1,117 @@
+#!/bin/sh
+
+# Directorios de los que se harán las copias.
+SOURCES="/boot /home /usr /var /etc /sbin /bin"
+
+# IP de la máquina remota.
+RMACHINE=10.0.0.3
+
+# Usuario remoto.
+RUSER=root
+
+# Directorio de la clave privada.
+RKEY=/etc/ssh/rsync-key-aznar
+
+# Directorio donde se almacenarán las copias remotamente.
+RTARGET="/backup/aznar-diaria"
+
+# Asignamos el numero de rotaciones que tendrá el backup. Asegurate de tener espacio en disco.
+ROTATIONS=6
+
+# Habilitamos la salida de información extensa.
+VERBOSE="-v"
+
+# Comprobaciones previas.
+if [ ! -f $RKEY ]; then
+  echo "No se encuentra el fichero ssh"
+  echo "Saliendo..."
+  exit 2
+fi
+
+if [ ! ssh -i $RKEY $RUSER@$RMACHINE "test -x $RTARGET" ]; then
+  echo "El directorio remoto no existe o no tienes permisos de ejecucion"
+  echo "Saliendo..."
+  exit 2
+fi
+
+# Set name (date) of backup.
+BACKUP_DATE="`date +%F_%H-%M`"
+
+if [ ! $ROTATIONS -gt 1 ]; then
+  echo "Tienes que asignar más de una rotación a ROTATIONS"
+  echo "Saliendo..."
+  exit 2
+fi
+
+# Incremental para guardar el número de backup.
+BACKUP_NUMBER=1
+
+# Listamos todos los backups por la copia más nueva.
+# Se asigna el nombre de la más antigua a la que se vaya a crear si se alcanzó el límite de copias.
+for backup in `ssh -i $RKEY $RUSER@$RMACHINE "ls -dXr $RTARGET/*/"`; do
+	if [ $BACKUP_NUMBER -eq 1 ]; then
+		NEWEST_BACKUP="$backup"
+	fi
+
+	if [ $BACKUP_NUMBER -eq $ROTATIONS ]; then
+		OLDEST_BACKUP="$backup"
+		break
+	fi
+
+	let "BACKUP_NUMBER=$BACKUP_NUMBER+1"
+done
+
+# Comprobamos si existe un backup anterior. Si existe, se rotará la copia. Si no, se creará un directorio para la copia.
+if [ $OLDEST_BACKUP ]; then
+  # Cambiamos el antiguo backup al actual.
+  ssh -i $RKEY $RUSER@$RMACHINE "mv $OLDEST_BACKUP $RTARGET/$BACKUP_DATE"
+else
+  ssh -i $RKEY $RUSER@$RMACHINE "mkdir $RTARGET/$BACKUP_DATE"
+fi
+
+# Actualizamos el backup actual usando el más reciente.
+if [ $NEWEST_BACKUP ]; then
+  ssh -i $RKEY $RUSER@$RMACHINE "cp -al $NEWEST_BACKUP. $RTARGET/$BACKUP_DATE"
+fi
+
+# Chequeamos si se ha realizado la rotación correctamente.
+if [ ! ssh -i $RKEY $RUSER@$RMACHINE "test -d $RTARGET/$BACKUP_DATE" ]; then
+  echo "No se puede escribir en el directorio remoto asignado al backup"
+  echo "Saliendo..."
+  exit 2
+fi
+
+echo "Verificando origen..."
+for source in $SOURCES; do
+	echo "Comprobando $source..."
+	if [ ! -x $source ]; then
+		echo "Error con $source!"
+		echo "El directorio no existe o no tienes permisos de ejecucion"
+		exit 2
+	fi
+done
+
+#Buscamos la última copia completa.
+LATEST_WEEK_BACKUP= "ssh -i $RKEY $RUSER@$RMACHINE "ls -Ft | grep '/backup/aznar/$' | tail -1""
+
+#Últimos pasos antes de realizar la copia.
+echo "Origen comprobado. Iniciando rsync..."
+for source in $SOURCES; do
+
+  # Creamos los directorios en $TARGET para copiar la herarquía de los directorios
+  if [ ! ssh -i $RKEY $RUSER@$RMACHINE "test -d $RTARGET/$BACKUP_DATE/$source" ]; then
+    ssh -i $RKEY $RUSER@$RMACHINE "mkdir -p $RTARGET/$BACKUP_DATE/$source"
+  fi
+
+  # Creamos el fichero con los paquetes instalados en el sistema.
+  dpkg-query -f '${binary:Package}\n' -W > /package-selections
+
+  # Realizamos el comando rsync.
+  if [ ! ssh -i $RKEY $RUSER@$RMACHINE "test -d /backup/aznar/$BACKUP_DATE" ] && [ ! ssh -i $RKEY $RUSER@$RMACHINE "test -d /backup/rajoy-mensual/$BACKUP_DATE" ]; then
+    rsync $VERBOSE --compare-dest=$LATEST_WEEK_BACKUP -a --delete -e "ssh -i $RKEY" $source/ $RUSER@$RMACHINE:$RTARGET/$BACKUP_DATE/$source/
+  fi
+
+done
+
+exit 0
+
