@@ -105,7 +105,7 @@ for source in $SOURCES; do
   fi
 
   # Creamos el fichero con los paquetes instalados en el sistema.
-  dpkg-query -f '${binary:Package}\n' -W > /package-selections
+  dpkg-query -f '${binary:Package}\n' -W > /usr/local/bin/package-selections
 
   # Realizamos el comando rsync.
   if [ ! ssh -i $RKEY $RUSER@$RMACHINE "test -d /backup/zapatero/$BACKUP_DATE" ] && [ ! ssh -i $RKEY $RUSER@$RMACHINE "test -d /backup/zapatero-mensual/$BACKUP_DATE" ]; then
