@@ -28,7 +28,7 @@ if [ ! -f $RKEY ]; then
   exit 2
 fi
 
-if [ ! ssh -i $RKEY $RUSER@$RMACHINE "test -x $RTARGET" ]; then
+if ! ssh -i $RKEY $RUSER@$RMACHINE "test -x $RTARGET"; then
   echo "El directorio remoto no existe o no tienes permisos de ejecucion"
   echo "Saliendo..."
   exit 2
@@ -75,7 +75,7 @@ if [ $NEWEST_BACKUP ]; then
 fi
 
 # Chequeamos si se ha realizado la rotación correctamente.
-if [ ! ssh -i $RKEY $RUSER@$RMACHINE "test -d $RTARGET/$BACKUP_DATE" ]; then
+if ! ssh -i $RKEY $RUSER@$RMACHINE "test -d $RTARGET/$BACKUP_DATE"; then
   echo "No se puede escribir en el directorio remoto asignado al backup"
   echo "Saliendo..."
   exit 2
