@@ -28,7 +28,7 @@ if [ ! -f $RKEY ]; then
   exit 2
 fi
 
-if [ ! ssh -i $RKEY $RUSER@$RMACHINE "test -x $RTARGET" ]; then
+if ! ssh -i $RKEY $RUSER@$RMACHINE "test -x $RTARGET"; then
   echo "El directorio remoto no existe o no tienes permisos de ejecucion"
   echo "Saliendo..."
   exit 2
@@ -96,7 +96,7 @@ echo "Origen comprobado. Iniciando rsync..."
 for source in $SOURCES; do
 
   # Creamos los directorios en $TARGET para copiar la herarquía de los directorios
-  if [ ! ssh -i $RKEY $RUSER@$RMACHINE "test -d $RTARGET/$BACKUP_DATE/$source" ]; then
+  if ! ssh -i $RKEY $RUSER@$RMACHINE "test -d $RTARGET/$BACKUP_DATE/$source"; then
     ssh -i $RKEY $RUSER@$RMACHINE "mkdir -p $RTARGET/$BACKUP_DATE/$source"
   fi
 
@@ -104,7 +104,7 @@ for source in $SOURCES; do
   dpkg-query -f '${binary:Package}\n' -W > /usr/local/bin/package-selections
 
   # Realizamos el comando rsync.
-  if [ ! ssh -i $RKEY $RUSER@$RMACHINE "test -d /backup/aznar-mensual/$BACKUP_DATE" ]; then
+  if ! ssh -i $RKEY $RUSER@$RMACHINE "test -d /backup/aznar-mensual/$BACKUP_DATE"; then
     rsync $VERBOSE -a --delete -e "ssh -i $RKEY" $source/ $RUSER@$RMACHINE:$RTARGET/$BACKUP_DATE/$source/
   fi
 
